@@ -57,5 +57,8 @@ dkms.conf
 # build
 build/
 
-#special
+# run
+water_supply_system
+
+# special
 IHW_notes.md
