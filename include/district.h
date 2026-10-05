@@ -8,7 +8,7 @@ typedef struct {
 
 typedef struct {
     int id;
-    SchedulePoint *Schedule;
+    SchedulePoint *schedule;
     SchedulePoint *current_point;
 } District;
 

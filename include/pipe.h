@@ -6,7 +6,6 @@
 typedef struct {
     int id;
     double capacity;
-    double flow;
     StructureType source_type;
     int source_id;
     StructureType destination_type;
