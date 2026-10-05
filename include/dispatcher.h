@@ -2,10 +2,11 @@
 #define DISPATHER_H
 
 #include "utils/buffer.h"
+#include <stdbool.h>
 
 typedef struct {
-    bool on_pumps[];
-    double reservoirs_last_volume[];
+    bool *on_pumps;
+    double *reservoirs_last_volume;
     int last_messages;
     int max_power;
     Buffer last_messages_ids;
