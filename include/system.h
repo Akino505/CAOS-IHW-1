@@ -29,6 +29,11 @@ typedef struct {
 
     int current_time;
     bool emergency;
+
+    int loss_probability;
+    int delay_probability;
+    int dublicate_probability;
+    int max_delay;
 } System;
 
 #endif
