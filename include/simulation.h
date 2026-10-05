@@ -3,9 +3,10 @@
 
 #include "system.h"
 
-void init_system(System *system);
-void water_physics(System *system);
-void check_emergency(System *system);
-void log_print(System *system);
+void init_system(System *sys);
+void water_physics(System *sys);
+void check_emergency(System *sys);
+void log_print(System *sys);
+void sensors_work(System *sys);
 
 #endif
