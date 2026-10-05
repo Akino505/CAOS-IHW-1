@@ -5,7 +5,7 @@ typedef struct {
     int id;
     int current_time;
     int delivery_time;
-    int reservoit_id;
+    int reservoir_id;
     double volume;
 } Message;
 
