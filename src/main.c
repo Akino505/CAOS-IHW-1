@@ -12,6 +12,7 @@ int main() {
         check_emergency(&sys);
         sensors_work(&sys);
         // log(&system);
+        network_work(&sys);
         sys.current_time++;
     }
 }
