@@ -33,7 +33,17 @@ void init_system(System *sys) {
     int sensors_number = 2;
     int districts_number = 2;
     int pipes_number = 4;
+
+    int loss_probability = 20;
+    int delay_probability = 30;
+    int dublicate_probability = 10;
+    int max_delay = 3;
     //---
+    sys->delay_probability = delay_probability;
+    sys->dublicate_probability = dublicate_probability;
+    sys->loss_probability = loss_probability;
+    sys->max_delay = max_delay;
+
     sys->current_time = 0;
     sys->emergency = false;
 
@@ -216,6 +226,45 @@ void sensors_work(System *sys) {
                    measured_volume, msg.id);
 
             sensor->next_time += sensor->measurement_frequency;
+        }
+    }
+}
+
+void network_work(System *sys) {
+    int initial_count = sys->message_count;
+
+    for (int i = 0; i < initial_count; i++) {
+        Message *msg = &sys->messages[i];
+
+        if (rand() % 100 < sys->loss_probability) {
+            printf("[T=%03d] Сообщение ID=%d потеряно в сети\n",
+                   sys->current_time, msg->id);
+            remove_message_at(sys, i);
+            i--;
+            initial_count--;
+            continue;
+        }
+
+        if (msg->delivery_time == msg->current_time) {
+            if (rand() % 100 < sys->delay_probability) {
+                int delay = 1 + rand() % (sys->max_delay);
+                msg->delivery_time = sys->current_time + delay;
+                printf("[T=%03d] Сообщение ID=%d задержано на %d сек (придет в T=%03d)\n",
+                       sys->current_time, msg->id, delay, msg->delivery_time);
+            }
+        }
+
+        if (rand() % 100 < sys->dublicate_probability) {
+            Message dublicate;
+            dublicate.id = msg->id;
+            dublicate.current_time = msg->current_time;
+            dublicate.reservoir_id = msg->reservoir_id;
+            dublicate.volume = msg->volume;
+            dublicate.delivery_time = sys->current_time + (rand() % (sys->max_delay + 1));
+
+            add_message(sys, dublicate);
+            printf("[T=%03d] Создан дубликат сообщения ID=%d (придет в T=%03d)\n",
+                   sys->current_time, msg->id, dublicate.delivery_time);
         }
     }
 }
