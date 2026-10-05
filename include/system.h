@@ -20,6 +20,10 @@ typedef struct {
     Pipe *pipes;
     int sensors_number;
     Sensor *sensors;
+    int message_count;
+    int message_capacity;
+    Message *messages;
+    int global_messages_counter;
 
     Dispatcher dispatcher;
 
@@ -28,28 +32,3 @@ typedef struct {
 } System;
 
 #endif
-
-
-// мин|начальный объем|макс
-//  reservoir1 - 20|50|100
-//  reservoir2 - 30|75|150
-// Мощность|производительность
-//  pump1 - 50|10
-//  pump2 - 80|15
-//
-//  district1 - 8
-//  district2 - 12
-//
-// tube1 - p1-r1|20
-// tube2 - r1-d1|15
-// tube3 - p2-r2|25
-// tube4 - r2-d2|20
-
-// sensor1 - r1|3
-// sensor2 - r2|3
-
-// rand_lost = 20%
-// delay = 2
-// rand_dubl = 10%
-// max_energy = 100
-// strategy = greedy
