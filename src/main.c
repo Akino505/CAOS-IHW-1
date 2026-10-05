@@ -1,14 +1,17 @@
 #include "simulation.h"
+#include <stdio.h>
 
 #define MAX_TIME 100
 
 int main() {
-    System system;
-    while (system.current_time < MAX_TIME && !system.emergency) {
-        init_system(&system);
-        water_physics(&system);
-        check_emergency(&system);
+    System sys;
+    init_system(&sys);
+    while (sys.current_time < MAX_TIME && !sys.emergency) {
+        printf("=== НАЧАЛО ТИКА T=%d ===\n", sys.current_time);
+        water_physics(&sys);
+        check_emergency(&sys);
+        sensors_work(&sys);
         // log(&system);
-        system.current_time++;
+        sys.current_time++;
     }
 }
