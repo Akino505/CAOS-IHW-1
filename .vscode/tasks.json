@@ -3,13 +3,15 @@
     "tasks": [
         {
             "type": "shell",
-            "label": "make build", 
+            "label": "make build",
             "command": "make",
             "args": [],
             "options": {
                 "cwd": "${workspaceFolder}"
             },
-            "problemMatcher": ["$gcc"],
+            "problemMatcher": [
+                "$gcc"
+            ],
             "group": {
                 "kind": "build",
                 "isDefault": true
