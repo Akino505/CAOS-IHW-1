@@ -124,7 +124,7 @@ void init_system(System *sys) {
     for (int i = 0; i < pumps_number; ++i) {
         sys->dispatcher.on_pumps[i] = false;
     }
-    sys->dispatcher.max_power = 100;
+    sys->dispatcher.max_power = 150;
     sys->dispatcher.reservoirs_last_volume =
         malloc(sys->reservoir_number * sizeof(double));
     for (int i = 0; i < sys->reservoir_number; ++i) {
@@ -158,12 +158,37 @@ void water_physics(System *sys) {
     for (int i = 0; i < sys->pipes_number; ++i) {
         Pipe *pipe = &sys->pipes[i];
         double flow = calculate_flow(pipe, sys);
+
+        if (flow > 0.0) {
+            printf("[T=%03d] Труба %d: %.1f л/с от ", sys->current_time,
+                   pipe->id, flow);
+
+            if (pipe->source_type == PUMP) {
+                printf("Насоса %d", pipe->source_id);
+            } else if (pipe->source_type == RESERVOIR) {
+                printf("Резервуара %d", pipe->source_id);
+            }
+
+            printf(" к ");
+
+            if (pipe->destination_type == RESERVOIR) {
+                printf("Резервуару %d\n", pipe->destination_id);
+            } else if (pipe->destination_type == DISTRICT) {
+                printf("Району %d\n", pipe->destination_id);
+            }
+        }
+
         if (pipe->source_type == RESERVOIR) {
             sys->reservoirs[pipe->source_id].volume -= flow;
         }
         if (pipe->destination_type == RESERVOIR) {
             sys->reservoirs[pipe->destination_id].volume += flow;
         }
+    }
+    for (int i = 0; i < sys->districts_number; i++) {
+        District *dist = &sys->districts[i];
+        printf("[T=%03d] Район %d потребляет %.1f л/с\n", sys->current_time,
+               dist->id, dist->current_point->consumption);
     }
 }
 
@@ -179,9 +204,9 @@ void check_emergency(System *sys) {
                    sys->current_time, i, sys->reservoirs[i].volume,
                    sys->reservoirs[i].min_volume);
             sys->emergency = true;
-        }
-        else if (sys->reservoirs[i].volume < sys->reservoirs[i].min_volume) {
-            printf("[T=%03d] ВНИМАНИЕ: Уровень в резервуаре %d ниже минимального допустимого значения (%.1f < %.1f)\n",
+        } else if (sys->reservoirs[i].volume < sys->reservoirs[i].min_volume) {
+            printf("[T=%03d] ВНИМАНИЕ: Уровень в резервуаре %d ниже "
+                   "минимального допустимого значения (%.1f < %.1f)\n",
                    sys->current_time, i, sys->reservoirs[i].volume,
                    sys->reservoirs[i].min_volume);
         }
