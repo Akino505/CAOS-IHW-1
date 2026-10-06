@@ -21,26 +21,27 @@ void sequential_strategy(Dispatcher *disp, System *sys) {
         if (target_reservoir == -1)
             continue;
         double level = disp->reservoirs_last_volume[target_reservoir];
-        double min_lvl = sys->reservoirs[target_reservoir].min_volume;
-        double max_lvl = sys->reservoirs[target_reservoir].max_volume;
+        double min_level = sys->reservoirs[target_reservoir].min_volume;
+        double max_level = sys->reservoirs[target_reservoir].max_volume;
 
-        if (level < min_lvl && !disp->on_pumps[i]) {
+        if (level < min_level && !disp->on_pumps[i]) {
             if (current_power + sys->pumps[i].power <= disp->max_power) {
                 disp->on_pumps[i] = true;
                 current_power += sys->pumps[i].power;
                 printf("[T=%03d] Стратегия: ВКЛЮЧЕН насос %d (резервуар %d: "
                        "%.1f < %.1f)\n",
-                       sys->current_time, i, target_reservoir, level, min_lvl);
+                       sys->current_time, i, target_reservoir, level, min_level);
             }
-        } else if (level > max_lvl && disp->on_pumps[i]) {
+        } else if (level > max_level && disp->on_pumps[i]) {
             disp->on_pumps[i] = false;
             current_power -= sys->pumps[i].power;
             printf("[T=%03d] Стратегия: ВЫКЛЮЧЕН насос %d (резервуар %d: %.1f "
                    "> %.1f)\n",
-                   sys->current_time, i, target_reservoir, level, max_lvl);
+                   sys->current_time, i, target_reservoir, level, max_level);
         }
     }
 }
+
 void greedy_strategy(Dispatcher *disp, System *sys) {
     double current_power = 0.0;
     for (int i = 0; i < sys->pumps_number; i++) {
@@ -72,11 +73,11 @@ void greedy_strategy(Dispatcher *disp, System *sys) {
             continue;
 
         double level = disp->reservoirs_last_volume[target_reservoir];
-        double min_lvl = sys->reservoirs[target_reservoir].min_volume;
-        double max_lvl = sys->reservoirs[target_reservoir].max_volume;
+        double min_level = sys->reservoirs[target_reservoir].min_volume;
+        double max_level = sys->reservoirs[target_reservoir].max_volume;
 
-        double distance_to_min = level - min_lvl;
-        double distance_to_max = max_lvl - level;
+        double distance_to_min = level - min_level;
+        double distance_to_max = max_level - level;
         double criticality = (distance_to_min < distance_to_max)
                                  ? distance_to_min
                                  : distance_to_max;
@@ -119,12 +120,16 @@ void greedy_strategy(Dispatcher *disp, System *sys) {
                 }
             }
         } else {
-            if (disp->on_pumps[pump_id]) {
+            double level = disp->reservoirs_last_volume[res_id];
+            double min_level = sys->reservoirs[res_id].min_volume;
+            double max_level = sys->reservoirs[res_id].max_volume;
+            double target_level = (min_level + max_level) / 1.5;
+            if (disp->on_pumps[pump_id] && level >= target_level) {
                 disp->on_pumps[pump_id] = false;
                 current_power -= sys->pumps[pump_id].power;
                 printf("[T=%03d] Стратегия: ВЫКЛЮЧЕН насос %d "
-                       "(резервуар %d)\n",
-                       sys->current_time, pump_id, res_id);
+                       "(резервуар %d: %.1f >= %.1f)\n",
+                       sys->current_time, pump_id, res_id, level, target_level);
             }
         }
     }
