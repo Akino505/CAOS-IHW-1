@@ -9,7 +9,7 @@
 #include "reservoir.h"
 #include "sensor.h"
 
-typedef struct {
+typedef struct System {
     int reservoir_number;
     Reservoir *reservoirs;
     int pumps_number;
