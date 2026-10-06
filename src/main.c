@@ -8,11 +8,12 @@ int main() {
     init_system(&sys);
     while (sys.current_time < MAX_TIME && !sys.emergency) {
         printf("=== НАЧАЛО ТИКА T=%d ===\n", sys.current_time);
-        water_physics(&sys);
-        check_emergency(&sys);
-        sensors_work(&sys);
-        // log(&system);
         network_work(&sys);
+        dispatcher_work(&sys);
+        water_physics(&sys);
+        sensors_work(&sys);
+        check_emergency(&sys);
+        // log(&system);
         sys.current_time++;
     }
 }
