@@ -39,6 +39,12 @@ void init_system(System *sys) {
     int dublicate_probability = 10;
     int max_delay = 3;
     //---
+
+    for (int i = 0; i < BUFFER_SIZE; i++) {
+        sys->dispatcher.last_messages_ids.last_ids[i] = -1;
+    }
+    sys->dispatcher.last_messages_ids.current_idx = 0;
+
     sys->delay_probability = delay_probability;
     sys->dublicate_probability = dublicate_probability;
     sys->loss_probability = loss_probability;
@@ -113,6 +119,7 @@ void init_system(System *sys) {
     sys->sensors[1] = (Sensor){
         .id = 1, .measurement_frequency = 3, .reservoir_id = 1, .next_time = 0};
 
+    sys->dispatcher.strategy = greedy_strategy;
     sys->dispatcher.on_pumps = malloc(sys->pumps_number * sizeof(bool));
     for (int i = 0; i < pumps_number; ++i) {
         sys->dispatcher.on_pumps[i] = false;
@@ -167,12 +174,16 @@ void check_emergency(System *sys) {
                    sys->current_time, i, sys->reservoirs[i].volume,
                    sys->reservoirs[i].max_volume);
             sys->emergency = true;
-        }
-        if (sys->reservoirs[i].volume < sys->reservoirs[i].min_volume) {
+        } else if (sys->reservoirs[i].volume <= 0.0) {
             printf("[T=%03d] АВАРИЯ: Резервуар %d высох (%.1f < %.1f)\n",
                    sys->current_time, i, sys->reservoirs[i].volume,
                    sys->reservoirs[i].min_volume);
             sys->emergency = true;
+        }
+        else if (sys->reservoirs[i].volume < sys->reservoirs[i].min_volume) {
+            printf("[T=%03d] ВНИМАНИЕ: Уровень в резервуаре %d ниже минимального допустимого значения (%.1f < %.1f)\n",
+                   sys->current_time, i, sys->reservoirs[i].volume,
+                   sys->reservoirs[i].min_volume);
         }
     }
 
@@ -249,7 +260,8 @@ void network_work(System *sys) {
             if (rand() % 100 < sys->delay_probability) {
                 int delay = 1 + rand() % (sys->max_delay);
                 msg->delivery_time = sys->current_time + delay;
-                printf("[T=%03d] Сообщение ID=%d задержано на %d сек (придет в T=%03d)\n",
+                printf("[T=%03d] Сообщение ID=%d задержано на %d сек (придет в "
+                       "T=%03d)\n",
                        sys->current_time, msg->id, delay, msg->delivery_time);
             }
         }
@@ -260,11 +272,54 @@ void network_work(System *sys) {
             dublicate.current_time = msg->current_time;
             dublicate.reservoir_id = msg->reservoir_id;
             dublicate.volume = msg->volume;
-            dublicate.delivery_time = sys->current_time + (rand() % (sys->max_delay + 1));
+            dublicate.delivery_time =
+                sys->current_time + (rand() % (sys->max_delay + 1));
 
             add_message(sys, dublicate);
-            printf("[T=%03d] Создан дубликат сообщения ID=%d (придет в T=%03d)\n",
-                   sys->current_time, msg->id, dublicate.delivery_time);
+            printf(
+                "[T=%03d] Создан дубликат сообщения ID=%d (придет в T=%03d)\n",
+                sys->current_time, msg->id, dublicate.delivery_time);
         }
+    }
+}
+
+bool is_duplicate(Dispatcher *dispatcher, int msg_id) {
+    for (int i = 0; i < BUFFER_SIZE; i++) {
+        if (dispatcher->last_messages_ids.last_ids[i] == msg_id) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void add_to_recent_ids(Dispatcher *dispatcher, int msg_id) {
+    dispatcher->last_messages_ids
+        .last_ids[dispatcher->last_messages_ids.current_idx] = msg_id;
+    dispatcher->last_messages_ids.current_idx =
+        (dispatcher->last_messages_ids.current_idx + 1) % BUFFER_SIZE;
+}
+
+void dispatcher_work(System *sys) {
+    for (int i = 0; i < sys->message_count; i++) {
+        Message *msg = &sys->messages[i];
+        if (msg->delivery_time <= sys->current_time) {
+            if (is_duplicate(&sys->dispatcher, msg->id)) {
+                printf("[T=%03d] Дубликат сообщения ID=%d отброшен\n",
+                       sys->current_time, msg->id);
+            } else {
+                sys->dispatcher.reservoirs_last_volume[msg->reservoir_id] =
+                    msg->volume;
+                add_to_recent_ids(&sys->dispatcher, msg->id);
+                printf("[T=%03d] Диспетчер получил сообщение ID=%d (резервуар "
+                       "%d, уровень %.1f л)\n",
+                       sys->current_time, msg->id, msg->reservoir_id,
+                       msg->volume);
+            }
+            remove_message_at(sys, i);
+            i--;
+        }
+    }
+    if (sys->dispatcher.strategy != NULL) {
+        sys->dispatcher.strategy(&sys->dispatcher, sys);
     }
 }
