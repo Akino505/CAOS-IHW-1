@@ -8,21 +8,32 @@ OBJ_DIR = build
 
 TARGET = water_supply_system
 
-SRCS = $(wildcard $(SRC_DIR)/*.c)
+SRCS = $(SRC_DIR)/main.c \
+       $(SRC_DIR)/simulation.c \
+       $(SRC_DIR)/strategies.c \
+       $(SRC_DIR)/external/statistics.c \
+       $(SRC_DIR)/external/clean.c \
+       $(SRC_DIR)/external/signal_handler.c \
+	   $(SRC_DIR)/external/logger.c \
+	   $(SRC_DIR)/external/read_config.c
+
 OBJS = $(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(SRCS))
 
 all: $(TARGET)
 $(TARGET): $(OBJS)
-	@mkdir -p $(OBJ_DIR)
 	$(CC) $(CFLAGS) $(OBJS) -o $(TARGET)
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
-	@mkdir -p $(OBJ_DIR)
+	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c $< -o $@
+
 
 clean:
 	rm -rf $(OBJ_DIR) $(TARGET)
 
 rebuild: clean all
+
+run: $(TARGET)
+	./$(TARGET)
 
 .PHONY: all clean rebuild
