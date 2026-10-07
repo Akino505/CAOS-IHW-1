@@ -10,7 +10,6 @@ struct System;
 typedef struct Dispatcher {
     bool *on_pumps;
     double *reservoirs_last_volume;
-    int last_messages;
     int max_power;
     Buffer last_messages_ids;
     void (*strategy)(struct Dispatcher*, struct System*);
