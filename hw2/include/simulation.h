@@ -11,4 +11,9 @@ void sensors_work(System *sys);
 void network_work(System *sys);
 void dispatcher_work(System *sys);
 
+void *physics_thread_func(void *arg);
+void *dispatcher_thread_func(void *arg);
+void *network_thread_func(void *arg);
+void *sensors_thread_func(void *arg);
+
 #endif

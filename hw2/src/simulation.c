@@ -3,7 +3,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-
 static double calculate_flow(Pipe *pipe, System *sys) {
     double source_wants = 0.0;
     if (pipe->source_type == PUMP) {
@@ -221,4 +220,115 @@ void dispatcher_work(System *sys) {
     if (sys->dispatcher.strategy != NULL) {
         sys->dispatcher.strategy(&sys->dispatcher, sys);
     }
+}
+
+void *sensors_thread_func(void *arg) {
+    System *sys = (System *)arg;
+    int last_processed_tick = 0;
+    while (1) {
+        pthread_mutex_lock(&sys->tick_mutex);
+        while (sys->current_time <= last_processed_tick && !sys->stop_flag) {
+            pthread_cond_wait(&sys->tick_start_cond, &sys->tick_mutex);
+        }
+
+        if (sys->stop_flag) {
+            pthread_mutex_unlock(&sys->tick_mutex);
+            break;
+        }
+        last_processed_tick = sys->current_time;
+        pthread_mutex_unlock(&sys->tick_mutex);
+        pthread_mutex_lock(&sys->data_mutex);
+        sensors_work(sys);
+        pthread_mutex_unlock(&sys->data_mutex);
+        pthread_mutex_lock(&sys->tick_mutex);
+        sys->workers_done++;
+        if (sys->workers_done == 4) {
+            pthread_cond_signal(&sys->tick_done_cond);
+        }
+        pthread_mutex_unlock(&sys->tick_mutex);
+    }
+    return NULL;
+}
+
+void *physics_thread_func(void *arg) {
+    System *sys = (System *)arg;
+    int last_processed_tick = 0;
+    while (1) {
+        pthread_mutex_lock(&sys->tick_mutex);
+        while (sys->current_time <= last_processed_tick && !sys->stop_flag) {
+            pthread_cond_wait(&sys->tick_start_cond, &sys->tick_mutex);
+        }
+        if (sys->stop_flag) {
+            pthread_mutex_unlock(&sys->tick_mutex);
+            break;
+        }
+        last_processed_tick = sys->current_time;
+        pthread_mutex_unlock(&sys->tick_mutex);
+        pthread_mutex_lock(&sys->data_mutex);
+        water_physics(sys);
+        check_emergency(sys);
+        pthread_mutex_unlock(&sys->data_mutex);
+        pthread_mutex_lock(&sys->tick_mutex);
+        sys->workers_done++;
+        if (sys->workers_done == 4) {
+            pthread_cond_signal(&sys->tick_done_cond);
+        }
+        pthread_mutex_unlock(&sys->tick_mutex);
+    }
+    return NULL;
+}
+
+void *dispatcher_thread_func(void *arg) {
+    System *sys = (System *)arg;
+    int last_processed_tick = 0;
+    while (1) {
+        pthread_mutex_lock(&sys->tick_mutex);
+        while (sys->current_time <= last_processed_tick && !sys->stop_flag) {
+            pthread_cond_wait(&sys->tick_start_cond, &sys->tick_mutex);
+        }
+
+        if (sys->stop_flag) {
+            pthread_mutex_unlock(&sys->tick_mutex);
+            break;
+        }
+        last_processed_tick = sys->current_time;
+        pthread_mutex_unlock(&sys->tick_mutex);
+        pthread_mutex_lock(&sys->data_mutex);
+        dispatcher_work(sys);
+        pthread_mutex_unlock(&sys->data_mutex);
+        pthread_mutex_lock(&sys->tick_mutex);
+        sys->workers_done++;
+        if (sys->workers_done == 4) {
+            pthread_cond_signal(&sys->tick_done_cond);
+        }
+        pthread_mutex_unlock(&sys->tick_mutex);
+    }
+    return NULL;
+}
+void *network_thread_func(void *arg) {
+    System *sys = (System *)arg;
+    int last_processed_tick = 0;
+    while (1) {
+        pthread_mutex_lock(&sys->tick_mutex);
+        while (sys->current_time <= last_processed_tick && !sys->stop_flag) {
+            pthread_cond_wait(&sys->tick_start_cond, &sys->tick_mutex);
+        }
+
+        if (sys->stop_flag) {
+            pthread_mutex_unlock(&sys->tick_mutex);
+            break;
+        }
+        last_processed_tick = sys->current_time;
+        pthread_mutex_unlock(&sys->tick_mutex);
+        pthread_mutex_lock(&sys->data_mutex);
+        network_work(sys);
+        pthread_mutex_unlock(&sys->data_mutex);
+        pthread_mutex_lock(&sys->tick_mutex);
+        sys->workers_done++;
+        if (sys->workers_done == 4) {
+            pthread_cond_signal(&sys->tick_done_cond);
+        }
+        pthread_mutex_unlock(&sys->tick_mutex);
+    }
+    return NULL;
 }

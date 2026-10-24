@@ -8,12 +8,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#define TOTAL_WORKERS 4
 #define MAX_TIME 100
-
-void* physics_thread_func(void* arg);
-void* dispatcher_thread_func(void* arg);
-void* network_thread_func(void* arg);
-void* sensors_thread_func(void* arg);
 
 int main(int argc, char *argv[]) {
     printf("START: starting the simulation\n");
@@ -39,17 +35,41 @@ int main(int argc, char *argv[]) {
 
     init_signal(&sys);
     logger_init("log.txt");
-    while (sys.current_time < MAX_TIME && !sys.emergency) {
-        network_work(&sys);
-        dispatcher_work(&sys);
-        water_physics(&sys);
-        sensors_work(&sys);
-        check_emergency(&sys);
+
+    pthread_t threads[TOTAL_WORKERS];
+    pthread_create(&threads[0], NULL, physics_thread_func, &sys);
+    pthread_create(&threads[1], NULL, dispatcher_thread_func, &sys);
+    pthread_create(&threads[2], NULL, network_thread_func, &sys);
+    pthread_create(&threads[3], NULL, sensors_thread_func, &sys);
+    while (sys.current_time < MAX_TIME && !sys.emergency && !sys.stop_flag) {
+        pthread_mutex_lock(&sys.tick_mutex);
         sys.current_time++;
+        sys.workers_done = 0;
+        sys.tick_ready = true;
+        pthread_cond_broadcast(&sys.tick_start_cond);
+        while (sys.workers_done < TOTAL_WORKERS) {
+            pthread_cond_wait(&sys.tick_done_cond, &sys.tick_mutex);
+        }
+        sys.tick_ready = false;
+        pthread_mutex_unlock(&sys.tick_mutex);
         usleep(delay * 1000);
     }
-    printf("FINISH: Finish simulation\n");
+    sys.stop_flag = 1;
+    pthread_mutex_lock(&sys.tick_mutex);
+    sys.tick_ready = true;
+    pthread_cond_broadcast(&sys.tick_start_cond);
+    pthread_mutex_unlock(&sys.tick_mutex);
+    for (int i = 0; i < TOTAL_WORKERS; i++) {
+        pthread_join(threads[i], NULL);
+    }
+    printf("FINISH: Finish the simulation.\n");
     print_statistics(&sys);
+    pthread_mutex_destroy(&sys.data_mutex);
+    pthread_mutex_destroy(&sys.log_mutex);
+    pthread_mutex_destroy(&sys.tick_mutex);
+    pthread_cond_destroy(&sys.tick_start_cond);
+    pthread_cond_destroy(&sys.tick_done_cond);
+
     clean_system(&sys);
     return 0;
 }
