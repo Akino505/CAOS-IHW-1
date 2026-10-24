@@ -1,6 +1,6 @@
 CC = gcc
 
-CFLAGS = -Wall -Werror -Iinclude
+CFLAGS = -Wall -Werror -Iinclude -pthread
 
 SRC_DIR = src
 INC_DIR = include
