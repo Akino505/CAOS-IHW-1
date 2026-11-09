@@ -15,7 +15,9 @@ SRCS = $(SRC_DIR)/main.c \
        $(SRC_DIR)/external/clean.c \
        $(SRC_DIR)/external/signal_handler.c \
 	   $(SRC_DIR)/external/logger.c \
-	   $(SRC_DIR)/external/read_config.c
+	   $(SRC_DIR)/external/read_config.c \
+	   $(SRC_DIR)/external/ipc.c \
+	   $(SRC_DIR)/external/processes.c \
 
 OBJS = $(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(SRCS))
 
