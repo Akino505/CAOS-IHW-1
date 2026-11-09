@@ -7,12 +7,20 @@
 
 static int log_fd = -1;
 
-void logger_init(const char *filename) {
-    log_fd = open(filename, O_CREAT | O_WRONLY | O_TRUNC, 0644);
+static void open_log(const char *filename, int flags) {
+    log_fd = open(filename, flags, 0644);
     if (log_fd < 0) {
         perror("ERROR: Failed to open log file");
         exit(1);
     }
+}
+
+void logger_init(const char *filename) {
+    open_log(filename, O_CREAT | O_WRONLY | O_TRUNC | O_APPEND);
+}
+
+void logger_attach(const char *filename) {
+    open_log(filename, O_CREAT | O_WRONLY | O_APPEND);
 }
 
 void logger_close(void) {
@@ -25,14 +33,17 @@ void logger_close(void) {
 void log_event(const char *format, ...) {
     char buffer[1024];
     va_list args;
-
     va_start(args, format);
     int len = vsnprintf(buffer, sizeof(buffer), format, args);
     va_end(args);
-
-    printf("%s", buffer);
-
+    if (len < 0)
+        return;
+    if (len >= (int)sizeof(buffer))
+        len = sizeof(buffer) - 1;
+    ssize_t r = write(STDOUT_FILENO, buffer, len);
+    (void)r;
     if (log_fd >= 0) {
-        write(log_fd, buffer, len);
+        r = write(log_fd, buffer, len);
+        (void)r;
     }
 }

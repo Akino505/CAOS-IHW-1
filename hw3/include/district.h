@@ -1,6 +1,8 @@
 #ifndef DISTRICT_H
 #define DISTRICT_H
 
+#define MAX_SCHEDULE 16
+
 typedef struct {
     int time;
     double consumption;
@@ -9,8 +11,8 @@ typedef struct {
 typedef struct {
     int id;
     int schedule_size;
-    SchedulePoint *schedule;
-    SchedulePoint *current_point;
+    SchedulePoint schedule[MAX_SCHEDULE];
+    int current_point;
 } District;
 
 #endif

@@ -1,17 +1,20 @@
 #ifndef DISPATCHER_H
 #define DISPATCHER_H
 
-#include "utils/buffer.h"
-#include <stdbool.h>
 #include "system.h"
+#include "lastmsg.h"
+#include <stdbool.h>
+#include "utils/strategy_type.h"
+#include "utils/consts.h"
 
 struct System;
 
 typedef struct Dispatcher {
-    bool *on_pumps;
-    double *reservoirs_last_volume;
+    bool on_pumps[MAX_PUMPS];
+    double reservoirs_last_volume[MAX_RESERVOIRS];
     int max_power;
-    Buffer last_messages_ids;
+    LastMessagesIds last_messages_ids;
+    StrategyType strategy_type;
     void (*strategy)(struct Dispatcher*, struct System*);
 } Dispatcher;
 

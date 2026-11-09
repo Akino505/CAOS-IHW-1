@@ -8,32 +8,40 @@
 #include "pump.h"
 #include "reservoir.h"
 #include "sensor.h"
+#include <semaphore.h>
 
-typedef struct System {
+#include "utils/consts.h"
+#include "utils/sem_enum.h"
+
+
+typedef struct System{
+    int current_time;
+    volatile int emergency;
+    Reservoir reservoirs[MAX_RESERVOIRS];
     int reservoir_number;
-    Reservoir *reservoirs;
+    Pump pumps[MAX_PUMPS];
     int pumps_number;
-    Pump *pumps;
+    District districts[MAX_DISTRICTS];
     int districts_number;
-    District *districts;
+    Pipe pipes[MAX_PIPES];
     int pipes_number;
-    Pipe *pipes;
+    Sensor sensors[MAX_SENSORS];
     int sensors_number;
-    Sensor *sensors;
+    Message messages[MAX_MESSAGES];
     int message_count;
     int message_capacity;
-    Message *messages;
     int global_messages_counter;
-
-    Dispatcher dispatcher;
-
-    int current_time;
-    bool emergency;
-
-    int loss_probability;
-    int delay_probability;
-    int dublicate_probability;
+    double loss_probability;
+    double delay_probability;
     int max_delay;
+    double dublicate_probability;
+    Dispatcher dispatcher;
+    volatile int init_done;
+    volatile int stop;
+    pid_t clock_pid;
+    int max_time;
+    unsigned seed;
+    sem_t unnamed[SEM_COUNT];
 } System;
 
 #endif
