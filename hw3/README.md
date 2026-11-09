@@ -1,10 +1,12 @@
 # Urban Water Supply System Simulator
-A console application for simulating an urban water supply system operating over an unreliable data transmission network.
+A console application for simulating an urban water supply system operating over an unreliable data transmission network. 
+This version is implemented as a **multi-process application** using **POSIX shared memory** and **POSIX semaphores** for inter-process communication (IPC) and synchronization.  
 # Build
 ## Requirements:  
 - GCC compiler (C99 support)
 - Linux OS
-- Make (optional)
+- POSIX threads and Realtime extensions support (`-pthread`, `-lrt`)  
+- Make (optional)  
 # Compilation
 ## Compilation via Makefile
 ```
@@ -16,26 +18,37 @@ gcc -Wall -Wextra -std=c99 -o water_supply main.c simulation.c signal_handler.c 
 ```
 # Run
 ```
-./water_supply <config_file> [delay_ms]
+./water_supply <config_file> [delay_ms] [max_time] [seed]
 ```
 ## Parameters
-- `config_file` — Path to the configuration file (required).
-- `delay_ms` — Delay between simulation ticks in milliseconds (optional, default is 500 ms).
+- `config_file` - Path to the configuration file (required).
+- `delay_ms` - Delay between simulation ticks in milliseconds (optional, default is 500 ms).
+- `max_time` - Maximum simulation time in ticks (optional, default is 100).
+- `seed` - Seed for the random number generator to ensure reproducible network behavior (optional, default is 1).
 ## Run examples
 ```
 # Basic run with a 500 ms delay
 ./water_supply config.txt
 
-# Fast simulation (no delay)
-./water_supply config.txt 0
+# Fast simulation (no delay) with custom max time and seed
+./water_supply config.txt 0 200 42
 
 # Slow demonstration (1 second per tick)
 ./water_supply config.txt 1000
 ```
 ## Program Termination
-- By time: Automatically stops after reaching MAX_TIME.
-- By emergency: Stops immediately if a reservoir completely dries up (volume <= 0) or overflows (volume >= max_volume).
-- By user interruption: Press Ctrl+C for graceful early termination (triggers statistics output and memory cleanup).
+- By time: Automatically stops after reaching max_time.
+- By emergency: Stops immediately if a reservoir completely dries up (volume <= 0) or overflows (volume >= max_volume), or if power limits are exceeded.
+- By user interruption: Press Ctrl+C for graceful early termination. The signal handler triggers statistics output, waits for all child processes to exit, and safely cleans up IPC resources.
+## IPC Cleanup
+The program automatically cleans up shared memory (shm_unlink) and semaphores (sem_unlink / sem_destroy) upon normal exit or interruption.
+In case of a fatal crash (e.g., SIGKILL), you can manually clean up resources:
+```
+# Remove shared memory
+rm -f /dev/shm/wss_shm
+# Remove named semaphores
+rm -f /dev/shm/sem.wss_sem_*
+```
 # Example Configuration File (config.txt)
 ```
 # ============================================================
